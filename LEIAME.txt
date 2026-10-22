@@ -1,0 +1,41 @@
+ Instalação e execução
+Com Python 3.11 ou superior instalado, abra o terminal dentro da pasta painel_tse.
+
+1. Crie um ambiente virtual:
+
+
+bash
+python -m venv .venv
+2. Ative-o no Windows:
+
+
+powershell
+.venv\Scripts\Activate.ps1
+No Linux ou macOS:
+
+
+bash
+source .venv/bin/activate
+3. Instale as dependências:
+
+
+bash
+pip install -r requirements.txt
+4. Configure a URL oficial no .env e execute:
+
+
+bash
+python app.py
+5. Abra o navegador em:
+
+http://127.0.0.1:5000 
+O servidor precisa permanecer em execução para que o painel continue atualizando.
+
+
+
+
+
+
+
+
+cloudflared tunnel --url http://127.0.0.1:5000

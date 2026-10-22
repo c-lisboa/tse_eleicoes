@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apuração Presidencial 2026</title>
+  <style>
+    :root {
+      font-family: system-ui, Arial, sans-serif;
+      color: #182230;
+      background: #f3f5f8;
+    }
+    body { margin: 0; }
+    header {
+      background: #153d2b;
+      color: white;
+      padding: 24px;
+    }
+    main { max-width: 1050px; margin: 24px auto; padding: 0 16px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: white;
+      border: 1px solid #e0e5eb;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+    .muted { color: #667085; font-size: .9rem; }
+    .value { font-size: 1.7rem; font-weight: 750; margin-top: 8px; }
+    .candidate { margin: 16px 0; }
+    .bar {
+      height: 12px;
+      background: #e7ebef;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .fill { height: 100%; background: #18794e; width: 0; }
+    .status { font-weight: 650; }
+    .error { color: #a12a2a; }
+    a { color: #1769aa; }
+    footer { margin: 28px 0; color: #667085; font-size: .85rem; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Apuração Presidencial 2026</h1>
+  <div>Segundo turno · Brasil · Dados do TSE</div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="status" id="status">Conectando ao serviço de resultados…</div>
+    <p class="muted" id="atualizacao">Aguardando primeira consulta.</p>
+    <p id="erro" class="error"></p>
+    <p id="final"></p>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <div class="muted">Seções totalizadas</div>
+      <div class="value" id="secoes">—</div>
+      <div class="muted" id="percentual-secoes">—</div>
+    </div>
+    <div class="card">
+      <div class="muted">Eleitores aptos</div>
+      <div class="value" id="aptos">—</div>
+    </div>
+    <div class="card">
+      <div class="muted">Comparecimento</div>
+      <div class="value" id="comparecimento">—</div>
+      <div class="muted" id="pct-comparecimento">—</div>
+    </div>
+    <div class="card">
+      <div class="muted">Abstenções</div>
+      <div class="value" id="abstencoes">—</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Votação dos candidatos</h2>
+    <div id="candidatos">Os dados serão exibidos após a primeira consulta.</div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <div class="muted">Votos válidos</div>
+      <div class="value" id="validos">—</div>
+    </div>
+    <div class="card">
+      <div class="muted">Votos brancos</div>
+      <div class="value" id="brancos">—</div>
+    </div>
+    <div class="card">
+      <div class="muted">Votos nulos</div>
+      <div class="value" id="nulos">—</div>
+    </div>
+    <div class="card">
+      <div class="muted">Votos apurados</div>
+      <div class="value" id="votos-apurados">—</div>
+    </div>
+  </section>
+
+  <footer>
+    Fonte dos dados: Tribunal Superior Eleitoral.
+    Este painel reproduz dados recebidos e não substitui a divulgação oficial.
+    <br>
+    <a href="https://resultados.tse.jus.br/" target="_blank" rel="noopener">
+      Consultar o portal oficial do TSE
+    </a>
+  </footer>
+</main>
+
+<script>
+  const fmt = n => Number(n || 0).toLocaleString("pt-BR");
+  const fmtPct = n =>
+    Number(n || 0).toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }) + "%";
+
+  async function atualizar() {
+    try {
+      const resposta = await fetch("/api/resultados", { cache: "no-store" });
+      if (!resposta.ok) throw new Error("Erro ao consultar o painel.");
+      const d = await resposta.json();
+
+      document.getElementById("status").textContent =
+        d.ok ? "Dados recebidos do TSE" : "Aguardando dados válidos";
+
+      document.getElementById("atualizacao").textContent =
+        "Última consulta: " + (d.ultima_consulta || "ainda não realizada") +
+        " · Atualização informada pelo TSE: " +
+        (d.ultima_atualizacao_tse || "não disponível");
+
+      document.getElementById("erro").textContent = d.erro || "";
+      document.getElementById("final").textContent =
+        d.totalizacao_final === true
+          ? "O arquivo oficial indica totalização final."
+          : d.totalizacao_final === false
+            ? "A totalização ainda não está indicada como final."
+            : "";
+
+      if (!d.ok) return;
+
+      document.getElementById("secoes").textContent =
+        fmt(d.secoes.totalizadas) + " / " + fmt(d.secoes.total);
+      document.getElementById("percentual-secoes").textContent =
+        fmtPct(d.secoes.percentual);
+      document.getElementById("aptos").textContent = fmt(d.eleitores.aptos);
+      document.getElementById("comparecimento").textContent =
+        fmt(d.eleitores.comparecimento);
+      document.getElementById("pct-comparecimento").textContent =
+        fmtPct(d.eleitores.percentual_comparecimento);
+      document.getElementById("abstencoes").textContent =
+        fmt(d.eleitores.abstencoes);
+
+      document.getElementById("validos").textContent = fmt(d.votos.validos);
+      document.getElementById("brancos").textContent = fmt(d.votos.brancos);
+      document.getElementById("nulos").textContent = fmt(d.votos.nulos);
+      document.getElementById("votos-apurados").textContent =
+        fmt(d.votos.apurados);
+
+      const container = document.getElementById("candidatos");
+      container.replaceChildren();
+
+      const maior = Math.max(
+        1, ...d.candidatos.map(c => Number(c.votos || 0))
+      );
+
+      if (!d.candidatos.length) {
+        container.textContent = "O arquivo ainda não contém candidatos.";
+        return;
+      }
+
+      for (const c of d.candidatos) {
+        const bloco = document.createElement("div");
+        bloco.className = "candidate";
+
+        const titulo = document.createElement("strong");
+        titulo.textContent = c.nome;
+
+        const detalhe = document.createElement("div");
+        detalhe.className = "muted";
+        detalhe.textContent =
+          (c.partido ? c.partido + " · " : "") +
+          fmt(c.votos) + " votos · " + fmtPct(c.percentual);
+
+        const barra = document.createElement("div");
+        barra.className = "bar";
+
+        const preenchimento = document.createElement("div");
+        preenchimento.className = "fill";
+        preenchimento.style.width =
+          Math.min(100, Number(c.votos || 0) / maior * 100) + "%";
+
+        barra.appendChild(preenchimento);
+        bloco.append(titulo, detalhe, barra);
+        container.appendChild(bloco);
+      }
+    } catch (e) {
+      document.getElementById("status").textContent =
+        "Não foi possível atualizar os dados";
+      document.getElementById("erro").textContent = e.message;
+    }
+  }
+
+  atualizar();
+  setInterval(atualizar, 15000);
+</script>
+</body>
+</html>
